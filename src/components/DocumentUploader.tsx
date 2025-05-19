@@ -12,73 +12,111 @@ const DocumentUploader: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
-    
+  
     setUploading(true);
     setUploadProgress(0);
-    
-    // Convert FileList to array so we can iterate through it
-    const fileArray = Array.from(files);
-    
-    // Set up mock processing for demo purposes
-    const totalFiles = fileArray.length;
-    let processed = 0;
-    
-    fileArray.forEach((file, index) => {
-      // Simulate processing delay
-      setTimeout(() => {
-        // Simulate OCR/processing
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-          const content = e.target?.result as string;
-          
-          // Create a document object
-          const newDocument = {
-            id: uuidv4(),
-            name: file.name,
-            type: file.type,
-            uploadDate: new Date().toISOString(),
-            size: file.size,
-            content: "Sample extracted content from " + file.name, // In a real app, this would be the extracted text
-            status: 'ready' as const
-          };
-          
-          addDocument(newDocument);
-          processed++;
-          setUploadProgress(Math.round((processed / totalFiles) * 100));
-          
-          if (processed === totalFiles) {
-            setUploading(false);
-            toast.success(`Successfully uploaded ${totalFiles} document${totalFiles !== 1 ? 's' : ''}`);
-            // Reset file input
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-          }
-        };
-        
-        reader.onerror = () => {
-          processed++;
-          setUploadProgress(Math.round((processed / totalFiles) * 100));
-          
-          toast.error(`Failed to process ${file.name}`);
-          
-          if (processed === totalFiles) {
-            setUploading(false);
-            // Reset file input
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-          }
-        };
-        
-        reader.readAsText(file);
-      }, 500 + index * 300); // Stagger the processing to simulate real-world behavior
+  
+    const formData = new FormData();
+    Array.from(files).forEach(file => {
+      formData.append("files", file);  // `files` must match FastAPI parameter name
     });
+  
+    try {
+      const response = await fetch("http://localhost:3000/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+  
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+  
+      const result = await response.json();
+      const uploadedDocs = result.documents || [];
+  
+      uploadedDocs.forEach((doc: any) => {
+        addDocument({
+          id: doc.document_id,
+          name: doc.filename,
+          type: "",  // <-- add this! Use file MIME type or empty string if unknown
+          uploadDate: doc.timestamp,
+          size: 0,
+          content: `Processed ${doc.pages} page(s), ${doc.word_count} words.`,
+          status: "ready",
+          meta: {
+            wordCount: doc.word_count,
+            confidence: doc.confidence,
+          },
+        });        
+      });
+      
+  
+      setUploadProgress(100);
+      toast.success(`Uploaded ${uploadedDocs.length} document${uploadedDocs.length !== 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error uploading documents.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
+  
+// const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+//   const files = event.target.files;
+//   if (!files || files.length === 0) return;
+
+//   setUploading(true);
+//   setUploadProgress(0);
+
+//   const formData = new FormData();
+//   Array.from(files).forEach(file => {
+//     formData.append("files", file);  // `files` must match FastAPI parameter name
+//   });
+
+//   try {
+//     const response = await fetch("http://localhost:3000/api/documents/upload", {
+//       method: "POST",
+//       body: formData,
+//     });
+
+//     if (!response.ok) {
+//       throw new Error("Upload failed");
+//     }
+
+//     const result = await response.json();
+//     const uploadedDocs = result.documents || [];
+
+//     uploadedDocs.forEach((doc: any) => {
+//       addDocument({
+//         id: doc.document_id,
+//         name: doc.filename,
+//         uploadDate: doc.timestamp,
+//         size: 0, // Optional: fetch from original file?
+//         content: `Processed ${doc.pages} page(s), ${doc.word_count} words.`,
+//         status: 'ready',
+//         meta: {
+//           wordCount: doc.word_count,
+//           confidence: doc.confidence
+//         }
+//       });
+//     });
+
+//     setUploadProgress(100);
+//     toast.success(`Uploaded ${uploadedDocs.length} document${uploadedDocs.length !== 1 ? 's' : ''}`);
+//   } catch (error) {
+//     console.error(error);
+//     toast.error("Error uploading documents.");
+//   } finally {
+//     setUploading(false);
+//     if (fileInputRef.current) fileInputRef.current.value = '';
+//   }
+// };
+
+  
   
   const triggerFileInput = () => {
     fileInputRef.current?.click();

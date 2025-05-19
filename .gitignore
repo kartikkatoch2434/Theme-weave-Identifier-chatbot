@@ -29,3 +29,12 @@ ENV/
 *.njsproj
 *.sln
 *.sw?
+
+
+__pycache__/
+**/*data*/
+**/*data*
+
+.env
+
+test.py

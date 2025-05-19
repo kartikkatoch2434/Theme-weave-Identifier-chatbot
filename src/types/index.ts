@@ -8,7 +8,13 @@ export interface Document {
   content?: string;
   status: 'processing' | 'ready' | 'error';
   error?: string;
+  
+  meta?: {
+    wordCount: number;
+    confidence: number;
+  };
 }
+
 
 export interface DocumentResponse {
   documentId: string;
@@ -32,3 +38,4 @@ export interface ChatMessage {
   themes?: Theme[];
   documentResponses?: DocumentResponse[];
 }
+

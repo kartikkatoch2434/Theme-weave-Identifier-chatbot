@@ -44,7 +44,7 @@ cp .env.example .env
 
 Development:
 ```bash
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 3000
 ```
 
 Production:
@@ -72,6 +72,9 @@ Once the server is running, visit:
 ### Themes
 - POST `/api/themes/analyze` - Analyze themes across documents
 - GET `/api/themes/summary/{theme_id}` - Get theme summary
+
+### Query
+- POST `/api/query/documents` - Allow user to retrieve 
 
 ## Project Structure
 

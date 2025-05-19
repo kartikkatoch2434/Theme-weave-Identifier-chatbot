@@ -3,36 +3,35 @@ from fastapi.responses import JSONResponse
 from typing import List, Dict, Any
 from ..services.theme_identifier import ThemeIdentifier
 from pydantic import BaseModel
+from ..services.document_processor import DocumentProcessor
+import chromadb
+from ..core.config import settings
 
 router = APIRouter()
-theme_identifier = ThemeIdentifier()
+
+chroma_client = chromadb.PersistentClient(path=settings.CHROMA_PERSIST_DIRECTORY)
+
+doc_collection = chroma_client.get_or_create_collection("documents")
+theme_collection = chroma_client.get_or_create_collection("themes")
+
+theme_identifier = ThemeIdentifier(doc_collection, theme_collection)
 
 class ThemeRequest(BaseModel):
     document_texts: List[str]
     document_ids: List[str]
 
-@router.post("/analyze")
-async def analyze_themes(request: ThemeRequest):
+@router.get("/analyze")
+async def analyze_themes(timestamp: str):
     """Analyze and identify themes across provided documents."""
     try:
-        if len(request.document_texts) != len(request.document_ids):
-            raise HTTPException(
-                status_code=400,
-                detail="Number of document texts must match number of document IDs"
-            )
-        
-        documents = [
-            {"text": text, "id": doc_id}
-            for text, doc_id in zip(request.document_texts, request.document_ids)
-        ]
-        
-        themes = await theme_identifier.identify_themes(documents)
+
+        themes = await theme_identifier.identify_themes(timestamp)
         
         return JSONResponse(
             content={
                 "themes": themes["themes"],
                 "model_used": themes["model"],
-                "document_count": len(documents)
+                "theme_count": len(themes["themes"])
             },
             status_code=200
         )
@@ -42,24 +41,15 @@ async def analyze_themes(request: ThemeRequest):
 
 @router.get("/summary/{theme_id}")
 async def get_theme_summary(theme_id: str):
-    """Get a detailed summary of a specific theme."""
-    try:
-        # This would typically fetch from a database
-        # For now, return a mock response
-        return JSONResponse(
-            content={
-                "theme_id": theme_id,
-                "name": "Example Theme",
-                "description": "Detailed theme description",
-                "document_count": 5,
-                "relevance_score": 0.85,
-                "supporting_documents": [
-                    {"id": "doc1", "relevance": 0.9},
-                    {"id": "doc2", "relevance": 0.8}
-                ]
-            },
-            status_code=200
-        )
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+    theme = theme_collection.get(theme_id)
+    if not theme:
+        raise HTTPException(status_code=404, detail="Theme not found")
+    return JSONResponse(
+        content={
+            "theme_uuuid": theme_id,
+            'theme_data': theme['metadatas'][0]
+        },
+        status_code=200
+    )
+
+

@@ -17,12 +17,14 @@ class Settings(BaseSettings):
     # AI Models
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
     GOOGLE_API_KEY: Optional[str] = os.getenv("GOOGLE_API_KEY")
-    
+    GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY")
+
+
     # Vector Database
-    CHROMA_PERSIST_DIRECTORY: str = "backend/data/chroma"
+    CHROMA_PERSIST_DIRECTORY: str = r"C:\Users\Lenovo\OneDrive\Desktop\theme-weaver-chatbot\backend\data\chroma"
     
     # Document Storage
-    UPLOAD_DIRECTORY: str = "backend/data/uploads"
+    UPLOAD_DIRECTORY: str = r"C:\Users\Lenovo\OneDrive\Desktop\theme-weaver-chatbot\backend\data\uploads"
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     
     # OCR Configuration
