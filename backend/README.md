@@ -74,7 +74,7 @@ Once the server is running, visit:
 - GET `/api/themes/summary/{theme_id}` - Get theme summary
 
 ### Query
-- POST `/api/query/documents` - Allow user to retrieve 
+- POST `/api/query/documents` - Allow user to query docs using natural language
 
 ## Project Structure
 

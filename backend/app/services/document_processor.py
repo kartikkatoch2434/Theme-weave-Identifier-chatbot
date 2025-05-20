@@ -3,8 +3,6 @@ from pdf2image import convert_from_path
 from PIL import Image
 import os
 from typing import List, Dict, Any
-import chromadb
-from ..core.config import settings
 
 from paddleocr import PaddleOCR
 import tempfile
