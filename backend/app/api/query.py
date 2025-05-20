@@ -22,6 +22,7 @@ async def query_documents(q: str = Query(...), timestamp: str = Query(None)):
     """
     Query each document individually and return answers with citation.
     Optionally filter by multiple timestamps (comma-separated).
+    Also return a combined answer synthesized from all document-wise results.
     """
     try:
         # Parse timestamps if provided
@@ -35,9 +36,17 @@ async def query_documents(q: str = Query(...), timestamp: str = Query(None)):
             results = await query_processor.process_query(query=q, timestamp=ts)
             logger.info(f"Found {len(results)} results for timestamp {ts}")
             all_results.extend(results)
-            
         logger.info(f"Total results found: {len(all_results)}")
-        return {"query": q, "results": all_results}
+
+        # --- NEW: Generate a combined answer from all document-wise results ---
+        # Synthesize a single answer using the LLM
+        combined_answer = await query_processor.synthesize_combined_answer(q, all_results)
+
+        return {
+            "query": q,
+            "combined_answer": combined_answer,
+            "results": all_results
+        }
     except Exception as e:
         logger.error(f"Error processing query: {str(e)}")
         return {"error": str(e)}

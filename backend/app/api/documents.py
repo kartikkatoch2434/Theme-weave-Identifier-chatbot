@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Query
 from fastapi.responses import JSONResponse
 from typing import List
 import uuid
@@ -8,6 +8,7 @@ from ..core.config import settings
 from ..services.document_processor import DocumentProcessor
 from datetime import datetime
 import chromadb
+import shutil
 
 router = APIRouter()
 
@@ -157,6 +158,32 @@ async def query_documents(query: str, n_results: int = 5):
         results = await document_processor.search_documents(query, n_results)
         return JSONResponse(content=results, status_code=200)
     
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/delete")
+async def delete_document(doc_id: str = Query(...), timestamp: str = Query(...)):
+    """
+    Delete a document by its ID and timestamp from ChromaDB and the data folder.
+    """
+    try:
+        # Remove from ChromaDB
+        full_doc_id = f"{timestamp}_{doc_id}"
+        doc_collection.delete(ids=[full_doc_id])
+
+        # Remove file from data folder
+        session_dir = os.path.join(settings.UPLOAD_DIRECTORY, timestamp)
+        # Find the file with the doc_id prefix
+        found = False
+        for fname in os.listdir(session_dir):
+            if fname.startswith(doc_id):
+                file_path = os.path.join(session_dir, fname)
+                os.remove(file_path)
+                found = True
+        if not found:
+            raise HTTPException(status_code=404, detail="File not found in data folder")
+
+        return {"message": f"Document {doc_id} deleted successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -203,3 +203,49 @@ class QueryProcessor:
             temperature=0.2,
         )
         return response.choices[0].message.content.strip()
+
+    async def synthesize_combined_answer(self, user_query: str, doc_results: list) -> str:
+        """
+        Given the user query and a list of document-wise results, synthesize a single, comprehensive answer using the LLM.
+        """
+        if not doc_results or len(doc_results) == 0:
+            return "No relevant information found in the uploaded documents."
+
+        # Prepare a summary context
+        context = "You are an expert assistant. Given the following document-specific answers, synthesize a single, comprehensive answer to the user's question.\n\n"
+        context += f"User Question: {user_query}\n\n"
+        context += "Document-wise Answers:\n"
+        for idx, res in enumerate(doc_results, 1):
+            doc_name = res.get('doc_id', f'Document {idx}')
+            answer = res.get('response', '')
+            context += f"- {doc_name}: {answer}\n"
+        context += ("\nPlease provide a single, well-structured answer that combines the key points from all the above document-wise answers. Do not repeat the same information. Cite only if necessary.")
+
+        # Use the same LLM as for document-wise answers
+        if settings.OPENAI_API_KEY:
+            response = await openai.ChatCompletion.acreate(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You synthesize research findings into a single, clear answer."},
+                    {"role": "user", "content": context}
+                ],
+                temperature=0.3,
+                max_tokens=800
+            )
+            return response.choices[0].message.content.strip()
+        elif settings.GOOGLE_API_KEY:
+            model = genai.GenerativeModel('gemini-pro')
+            response = await model.generate_content_async(context)
+            return response.text.strip()
+        elif settings.GROQ_API_KEY:
+            response = self.groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You synthesize research findings into a single, clear answer."},
+                    {"role": "user", "content": context}
+                ],
+                model="llama-3.3-70b-versatile",
+                temperature=0.3,
+            )
+            return response.choices[0].message.content.strip()
+        else:
+            return "No LLM API key configured for synthesis."

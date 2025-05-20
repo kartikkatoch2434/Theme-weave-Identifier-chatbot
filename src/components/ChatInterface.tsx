@@ -95,16 +95,9 @@ const ChatInterface: React.FC = () => {
         }
       ];
       
-      // Create AI response from document responses
-      const aiResponse = `Based on the analysis of ${documents.length} documents, here are the key findings:\n\n`;
-      const responseContent = documentResponses.map(response => {
-        const citationsText = response.citations
-          .map(c => c.full_citation)
-          .join(', ');
-        return `**${response.documentName}:**\n${response.answer}\nCitations: ${citationsText}\n`;
-      }).join('\n');
-      
-      addAssistantMessage(aiResponse + responseContent, documentResponses, themes);
+      // Show the combined answer in the chat
+      const combinedAnswer = data.combined_answer || "No combined answer available.";
+      addAssistantMessage(combinedAnswer, documentResponses, themes);
     } catch (error) {
       console.error("Error processing query:", error);
       toast.error("An error occurred while processing your query");

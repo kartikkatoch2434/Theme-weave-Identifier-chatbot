@@ -32,14 +32,33 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setDocuments((prev) => [...prev, document]);
   };
 
-  const removeDocument = (id: string) => {
-    setDocuments((prev) => prev.filter((doc) => doc.id !== id));
-    setSelectedDocuments((prev) => {
-      const updated = new Set(prev);
-      updated.delete(id);
-      return updated;
-    });
-    toast.success("Document removed successfully");
+  const removeDocument = async (id: string) => {
+    // Find the document to get its timestamp
+    const doc = documents.find(doc => doc.id === id);
+    if (!doc) {
+      toast.error("Document not found");
+      return;
+    }
+    try {
+      // Call backend delete endpoint
+      const response = await fetch(`http://localhost:3000/api/documents/delete?doc_id=${encodeURIComponent(id)}&timestamp=${encodeURIComponent(doc.uploadDate)}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to delete document from backend');
+      }
+      setDocuments((prev) => prev.filter((doc) => doc.id !== id));
+      setSelectedDocuments((prev) => {
+        const updated = new Set(prev);
+        updated.delete(id);
+        return updated;
+      });
+      toast.success("Document removed successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete document from backend");
+    }
   };
 
   const updateDocument = (id: string, updates: Partial<Document>) => {
