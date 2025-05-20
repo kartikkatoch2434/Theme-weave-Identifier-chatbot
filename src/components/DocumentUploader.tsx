@@ -141,7 +141,7 @@ const DocumentUploader: React.FC = () => {
             id: doc.document_id,
             name: doc.filename,
             type: doc.filename.split('.').pop()?.toLowerCase() || '',
-            uploadDate: new Date().toISOString(),
+            uploadDate: doc.timestamp,
             size: files[index].size,
             content: `Processed ${doc.pages} page(s), ${doc.word_count} words.`,
             status: "ready",

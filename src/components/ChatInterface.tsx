@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from "react";
 import { useChat } from "@/context/ChatContext";
 import { useDocuments } from "@/context/DocumentContext";
@@ -21,7 +20,7 @@ import { toast } from "sonner";
 
 const ChatInterface: React.FC = () => {
   const { messages, addUserMessage, addAssistantMessage, clearMessages } = useChat();
-  const { documents } = useDocuments();
+  const { documents, getCurrentSessionTimestamps } = useDocuments();
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -55,18 +54,32 @@ const ChatInterface: React.FC = () => {
     setIsTyping(true);
     
     try {
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Get all timestamps from current session
+      const timestamps = getCurrentSessionTimestamps();
       
-      // Generate document responses
-      const documentResponses: DocumentResponse[] = documents.map(doc => ({
-        documentId: doc.id,
-        documentName: doc.name,
-        answer: `Sample response from document "${doc.name}" related to query.`,
-        citation: `Page ${Math.floor(Math.random() * 20) + 1}, Paragraph ${Math.floor(Math.random() * 5) + 1}`
+      if (timestamps.length === 0) {
+        throw new Error('No documents available for querying');
+      }
+      
+      // Make API call to query endpoint with all timestamps
+      const timestampParam = timestamps.join(',');
+      const response = await fetch(`http://localhost:3000/api/query/query_documents?q=${encodeURIComponent(inputValue)}&timestamp=${timestampParam}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to get response from server');
+      }
+      
+      const data = await response.json();
+      
+      // Transform the response into DocumentResponse format
+      const documentResponses: DocumentResponse[] = data.results.map((result: any) => ({
+        documentId: result.doc_id,
+        documentName: documents.find(doc => doc.id === result.doc_id)?.name || 'Unknown Document',
+        answer: result.response,
+        citations: result.citations || [] // Use the citations array from the backend
       }));
       
-      // Generate themes
+      // Generate themes (for now using mock data, can be integrated with theme endpoint later)
       const themes: Theme[] = [
         {
           id: uuidv4(),
@@ -82,13 +95,16 @@ const ChatInterface: React.FC = () => {
         }
       ];
       
-      // Simulate AI response
-      const aiResponse = `Based on the analysis of ${documents.length} documents, I've identified several key themes:\n\n`;
-      const themeContent = themes.map(theme => 
-        `**${theme.title}:**\n${theme.description}\nFound in ${theme.documents.length} documents.`
-      ).join("\n\n");
+      // Create AI response from document responses
+      const aiResponse = `Based on the analysis of ${documents.length} documents, here are the key findings:\n\n`;
+      const responseContent = documentResponses.map(response => {
+        const citationsText = response.citations
+          .map(c => c.full_citation)
+          .join(', ');
+        return `**${response.documentName}:**\n${response.answer}\nCitations: ${citationsText}\n`;
+      }).join('\n');
       
-      addAssistantMessage(aiResponse + themeContent, documentResponses, themes);
+      addAssistantMessage(aiResponse + responseContent, documentResponses, themes);
     } catch (error) {
       console.error("Error processing query:", error);
       toast.error("An error occurred while processing your query");

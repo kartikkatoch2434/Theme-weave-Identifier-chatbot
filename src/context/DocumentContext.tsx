@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from "react";
 import { Document } from "@/types";
 import { toast } from "sonner";
@@ -12,6 +11,7 @@ interface DocumentContextType {
   toggleDocumentSelection: (id: string) => void;
   clearDocumentSelection: () => void;
   selectAllDocuments: () => void;
+  getCurrentSessionTimestamps: () => string[];
 }
 
 const DocumentContext = createContext<DocumentContextType | undefined>(undefined);
@@ -44,7 +44,19 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const updateDocument = (id: string, updates: Partial<Document>) => {
     setDocuments((prev) =>
-      prev.map((doc) => (doc.id === id ? { ...doc, ...updates } : doc))
+      prev.map((doc) => {
+        if (doc.id === id) {
+          // If we're updating with a new document from the upload response
+          if (updates.uploadDate) {
+            // Use the exact timestamp from the upload response
+            const timestamp = updates.uploadDate;
+            console.log("Using timestamp from upload response:", timestamp);
+            return { ...doc, ...updates, uploadDate: timestamp };
+          }
+          return { ...doc, ...updates };
+        }
+        return doc;
+      })
     );
   };
 
@@ -69,6 +81,18 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSelectedDocuments(new Set(allIds));
   };
 
+  const getCurrentSessionTimestamps = () => {
+    const timestamps = new Set<string>();
+    documents.forEach(doc => {
+      if (doc.uploadDate) {
+        // Use the exact timestamp as stored
+        timestamps.add(doc.uploadDate);
+      }
+    });
+    console.log("Current session timestamps:", Array.from(timestamps));
+    return Array.from(timestamps);
+  };
+
   return (
     <DocumentContext.Provider
       value={{
@@ -80,6 +104,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toggleDocumentSelection,
         clearDocumentSelection,
         selectAllDocuments,
+        getCurrentSessionTimestamps,
       }}
     >
       {children}

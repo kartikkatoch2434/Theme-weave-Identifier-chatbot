@@ -1,4 +1,3 @@
-
 export interface Document {
   id: string;
   name: string;
@@ -15,12 +14,17 @@ export interface Document {
   };
 }
 
+export interface Citation {
+  page: string;
+  paragraph: string;
+  full_citation: string;
+}
 
 export interface DocumentResponse {
   documentId: string;
   documentName: string;
   answer: string;
-  citation: string;
+  citations: Citation[];
 }
 
 export interface Theme {
