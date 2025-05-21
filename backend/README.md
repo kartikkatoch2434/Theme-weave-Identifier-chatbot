@@ -36,7 +36,7 @@ url-https://console.groq.com/keys
 
 4. Copy the environment template and fill in your values:
 ```bash
-cp .env.example .\backend\.env
+cp .env.example ./backend/.env
 ```
 Note - ## Data Storage Configuration
 
