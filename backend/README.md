@@ -31,11 +31,21 @@ pip install -r requirements.txt
 pip install paddleocr paddlepaddle -i https://pypi.org/simple
 ```
 
-3. Copy the environment template and fill in your values:
-```bash
-cp .env.example .env
-```
+3. Get your Free groq api here and set it into your env variable file by creating it shown in step 4
+url-https://console.groq.com/keys
 
+4. Copy the environment template and fill in your values:
+```bash
+cp .env.example .\backend\.env
+```
+Note - ## Data Storage Configuration
+
+change paths where you want to store the data of upload directory and chroma_presist_directory manually in config.py:
+
+```
+UPLOAD_DIRECTORY=C:/Users/Lenovo/OneDrive/Desktop/theme-weaver-chatbot/backend/data/uploads
+CHROMA_PERSIST_DIRECTORY=C:/Users/Lenovo/OneDrive/Desktop/theme-weaver-chatbot/backend/data/chroma
+```
 4. Configure your environment variables in `.env`:
 - Add your OpenAI API key or Google API key
 - Set your secret key for JWT

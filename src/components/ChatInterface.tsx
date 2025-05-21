@@ -23,11 +23,29 @@ const ChatInterface: React.FC = () => {
   const { documents, getCurrentSessionTimestamps } = useDocuments();
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [themes, setThemes] = useState<Theme[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  useEffect(() => {
+    const fetchThemes = async () => {
+      const timestamps = getCurrentSessionTimestamps();
+      if (!timestamps.length) return;
+      try {
+        const response = await fetch(`http://localhost:3000/api/themes/analyze?timestamp=${encodeURIComponent(timestamps.join(','))}`);
+        if (!response.ok) throw new Error("Failed to fetch themes");
+        const data = await response.json();
+        setThemes(data.themes || []);
+      } catch (err) {
+        setThemes([]);
+        toast.error("Failed to fetch themes");
+      }
+    };
+    fetchThemes();
+  }, [documents]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -78,22 +96,6 @@ const ChatInterface: React.FC = () => {
         answer: result.response,
         citations: result.citations || [] // Use the citations array from the backend
       }));
-      
-      // Generate themes (for now using mock data, can be integrated with theme endpoint later)
-      const themes: Theme[] = [
-        {
-          id: uuidv4(),
-          title: "Primary Theme",
-          description: "This is the primary theme identified across multiple documents.",
-          documents: documents.slice(0, Math.floor(documents.length * 0.8)).map(d => d.id)
-        },
-        {
-          id: uuidv4(),
-          title: "Secondary Theme",
-          description: "This is a secondary theme found in some documents.",
-          documents: documents.slice(0, Math.floor(documents.length * 0.5)).map(d => d.id)
-        }
-      ];
       
       // Show the combined answer in the chat
       const combinedAnswer = data.combined_answer || "No combined answer available.";
@@ -187,7 +189,7 @@ const ChatInterface: React.FC = () => {
                             </TabsList>
                             
                             <TabsContent value="themes" className="mt-4 space-y-4">
-                              <ThemeVisualizer themes={message.themes} documents={documents} />
+                              <ThemeVisualizer themes={themes} documents={documents} />
                             </TabsContent>
                             
                             <TabsContent value="documents" className="mt-4">

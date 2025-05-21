@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 const Index = () => {
   return (
     <div>
-      <div style={{
+      {/* <div style={{
         background: 'red',
         color: 'white',
         padding: 32,
@@ -16,7 +16,7 @@ const Index = () => {
         position: 'relative'
       }}>
         TEST SIDEBAR
-      </div>
+      </div> */}
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-blue-50">
         <header className="bg-white shadow-sm py-4">
           <div className="container mx-auto px-4 flex justify-between items-center">
