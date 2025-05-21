@@ -45,9 +45,11 @@ async def upload_document(file: UploadFile = File(...)):
         if file_size > settings.MAX_UPLOAD_SIZE:
             raise HTTPException(status_code=413, detail="File too large")
         
-        # Generate timestamp folder
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-        session_dir = os.path.join(settings.UPLOAD_DIRECTORY, timestamp)
+        # Generate timestamp for folder and ISO string for API
+        now = datetime.now()
+        timestamp = now.strftime("%Y-%m-%dT%H:%M:%S")  # For API response
+        folder_timestamp = now.strftime("%Y-%m-%dT%H-%M-%S")  # For folder name
+        session_dir = os.path.join(settings.UPLOAD_DIRECTORY, folder_timestamp)
         os.makedirs(session_dir, exist_ok=True)
 
         # Counter file path
@@ -80,6 +82,7 @@ async def upload_document(file: UploadFile = File(...)):
                 "message": "Document processed successfully",
                 "document_id": doc_id,
                 "filename": file.filename,
+                "timestamp": timestamp,  # <-- valid ISO string
                 "pages": doc_content["pages"],
                 "word_count": doc_content["word_count"],
                 "confidence": doc_content["confidence"]
@@ -94,9 +97,11 @@ async def upload_document(file: UploadFile = File(...)):
 async def upload_multiple_documents(files: List[UploadFile] = File(...)):
     """Upload and process multiple documents at once."""
     try:
-        # Generate timestamp folder once per batch
-        timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-        session_dir = os.path.join(settings.UPLOAD_DIRECTORY, timestamp)
+        # Generate timestamp for folder and ISO string for API
+        now = datetime.now()
+        timestamp = now.strftime("%Y-%m-%dT%H:%M:%S")  # For API response
+        folder_timestamp = now.strftime("%Y-%m-%dT%H-%M-%S")  # For folder name
+        session_dir = os.path.join(settings.UPLOAD_DIRECTORY, folder_timestamp)
         os.makedirs(session_dir, exist_ok=True)
 
         # Counter file path for this batch
@@ -132,7 +137,7 @@ async def upload_multiple_documents(files: List[UploadFile] = File(...)):
             responses.append({
                 "document_id": doc_id,
                 "filename": file.filename,
-                "timestamp": timestamp,
+                "timestamp": timestamp,  # <-- valid ISO string
                 "pages": doc_content["pages"],
                 "word_count": doc_content["word_count"],
                 "confidence": doc_content["confidence"]
@@ -141,7 +146,7 @@ async def upload_multiple_documents(files: List[UploadFile] = File(...)):
         return JSONResponse(
             content={
                 "message": "Documents processed successfully",
-                "timestamp_folder": timestamp,
+                "timestamp_folder": folder_timestamp,  # folder-safe version
                 "documents": responses
             },
             status_code=200

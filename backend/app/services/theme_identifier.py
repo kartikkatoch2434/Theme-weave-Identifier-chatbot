@@ -3,6 +3,7 @@ import openai
 import google.generativeai as genai
 from ..core.config import settings
 from groq import Groq
+import re
 
 class ThemeIdentifier:
     def __init__(self, doc_collection, theme_collection):
@@ -156,6 +157,8 @@ class ThemeIdentifier:
                 if current_theme:
                     theme_id = f"{timestamp}_theme_{theme_counter}"
                     current_theme['theme_id'] = theme_id
+                    # Extract documents from evidence
+                    current_theme['documents'] = self._extract_documents_from_evidence(current_theme.get('evidence', []))
                     themes.append(current_theme)
 
                     # Store theme in ChromaDB
@@ -185,6 +188,7 @@ class ThemeIdentifier:
         if current_theme:
             theme_id = f"{timestamp}_theme_{theme_counter}"
             current_theme['theme_id'] = theme_id
+            current_theme['documents'] = self._extract_documents_from_evidence(current_theme.get('evidence', []))
             themes.append(current_theme)
 
             self.theme_collection.add(
@@ -199,3 +203,31 @@ class ThemeIdentifier:
 
         print("Themes_processor:", themes)
         return themes
+
+    def _extract_documents_from_evidence(self, evidence_list):
+        doc_ids = set()
+        for evidence in evidence_list:
+            # Try to match both "Document X:" and "document_kar001.pdf:"
+            match = re.match(r'-\s*(Document\s+\d+|[\w\-.]+):', evidence, re.IGNORECASE)
+            if match:
+                doc_ids.add(match.group(1).strip())
+        return list(doc_ids)
+
+    async def identify_themes_for_documents(self, document_texts: list, document_ids: list, timestamps: list) -> dict:
+        """Identify themes across a provided set of documents (multi-timestamp support)."""
+        documents = [
+            {"text": text, "id": doc_id}
+            for text, doc_id in zip(document_texts, document_ids)
+        ]
+        context = self._prepare_context(documents)
+        try:
+            if settings.OPENAI_API_KEY:
+                return await self._identify_themes_openai(context, ','.join(timestamps))
+            elif settings.GOOGLE_API_KEY:
+                return await self._identify_themes_gemini(context, ','.join(timestamps))
+            elif settings.GROQ_API_KEY:
+                return await self._identify_themes_groq(context, ','.join(timestamps))
+            else:
+                raise ValueError("No LLM API key configured")
+        except Exception as e:
+            raise Exception(f"Error identifying themes: {str(e)}")

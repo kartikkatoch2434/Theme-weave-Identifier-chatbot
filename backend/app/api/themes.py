@@ -22,11 +22,19 @@ class ThemeRequest(BaseModel):
 
 @router.get("/analyze")
 async def analyze_themes(timestamp: str):
-    """Analyze and identify themes across provided documents."""
+    """Analyze and identify themes across provided documents. Accepts comma-separated timestamps."""
     try:
-
-        themes = await theme_identifier.identify_themes(timestamp)
-        
+        # Support multiple timestamps (comma-separated)
+        timestamps = [t.strip() for t in timestamp.split(",") if t.strip()]
+        # Gather all documents for all timestamps
+        all_document_texts = []
+        all_document_ids = []
+        for ts in timestamps:
+            docs = theme_identifier.get_documents_by_timestamp(ts)
+            all_document_texts.extend(docs["document_texts"])
+            all_document_ids.extend(docs["document_ids"])
+        # Run theme analysis on the combined set
+        themes = await theme_identifier.identify_themes_for_documents(all_document_texts, all_document_ids, timestamps)
         return JSONResponse(
             content={
                 "themes": themes["themes"],
@@ -35,7 +43,6 @@ async def analyze_themes(timestamp: str):
             },
             status_code=200
         )
-    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

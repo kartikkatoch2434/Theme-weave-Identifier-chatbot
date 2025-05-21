@@ -28,6 +28,7 @@ source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 2. Install dependencies:
 ```bash
 pip install -r requirements.txt
+pip install paddleocr paddlepaddle -i https://pypi.org/simple
 ```
 
 3. Copy the environment template and fill in your values:
