@@ -45,11 +45,9 @@ async def upload_document(file: UploadFile = File(...)):
         if file_size > settings.MAX_UPLOAD_SIZE:
             raise HTTPException(status_code=413, detail="File too large")
         
-        # Generate timestamp for folder and ISO string for API
-        now = datetime.now()
-        timestamp = now.strftime("%Y-%m-%dT%H:%M:%S")  # For API response
-        folder_timestamp = now.strftime("%Y-%m-%dT%H-%M-%S")  # For folder name
-        session_dir = os.path.join(settings.UPLOAD_DIRECTORY, folder_timestamp)
+        # Generate timestamp folder
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        session_dir = os.path.join(settings.UPLOAD_DIRECTORY, timestamp)
         os.makedirs(session_dir, exist_ok=True)
 
         # Counter file path
@@ -82,7 +80,6 @@ async def upload_document(file: UploadFile = File(...)):
                 "message": "Document processed successfully",
                 "document_id": doc_id,
                 "filename": file.filename,
-                "timestamp": timestamp,  # <-- valid ISO string
                 "pages": doc_content["pages"],
                 "word_count": doc_content["word_count"],
                 "confidence": doc_content["confidence"]
@@ -97,11 +94,9 @@ async def upload_document(file: UploadFile = File(...)):
 async def upload_multiple_documents(files: List[UploadFile] = File(...)):
     """Upload and process multiple documents at once."""
     try:
-        # Generate timestamp for folder and ISO string for API
-        now = datetime.now()
-        timestamp = now.strftime("%Y-%m-%dT%H:%M:%S")  # For API response
-        folder_timestamp = now.strftime("%Y-%m-%dT%H-%M-%S")  # For folder name
-        session_dir = os.path.join(settings.UPLOAD_DIRECTORY, folder_timestamp)
+        # Generate timestamp folder once per batch
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        session_dir = os.path.join(settings.UPLOAD_DIRECTORY, timestamp)
         os.makedirs(session_dir, exist_ok=True)
 
         # Counter file path for this batch
@@ -137,7 +132,7 @@ async def upload_multiple_documents(files: List[UploadFile] = File(...)):
             responses.append({
                 "document_id": doc_id,
                 "filename": file.filename,
-                "timestamp": timestamp,  # <-- valid ISO string
+                "timestamp": timestamp,
                 "pages": doc_content["pages"],
                 "word_count": doc_content["word_count"],
                 "confidence": doc_content["confidence"]
@@ -146,7 +141,7 @@ async def upload_multiple_documents(files: List[UploadFile] = File(...)):
         return JSONResponse(
             content={
                 "message": "Documents processed successfully",
-                "timestamp_folder": folder_timestamp,  # folder-safe version
+                "timestamp_folder": timestamp,
                 "documents": responses
             },
             status_code=200
@@ -191,4 +186,3 @@ async def delete_document(doc_id: str = Query(...), timestamp: str = Query(...))
         return {"message": f"Document {doc_id} deleted successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
